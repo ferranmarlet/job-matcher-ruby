@@ -53,18 +53,56 @@ The `terraform/` stack runs in AWS `eu-west-1` (environment `dev`) next to jobsc
    terraform -chdir=terraform apply -var-file=dev.tfvars
    ```
 
-3. Create the database user, through an SSM tunnel to RDS as described in jobscan's README, connected as the RDS master user:
+3. Create the database user, as described in "Setting up the database user" below.
+
+### Setting up the database user
+
+Run this once, before the app's first deploy. Without the user, the app starts but fails its first database query. It doesn't depend on this stack, so it can also be done before `terraform apply`.
+
+The app logs in to jobscan's RDS as `job_matcher_app` with an IAM token. That user has no password and can only read tables, so creating it doesn't affect jobscan.
+
+You need the `session-manager-plugin` (see jobscan's README). If RDS was stopped with jobscan's `scripts/stop_environment.sh`, start it first.
+
+1. Open a tunnel to RDS through jobscan's instance:
+   ```sh
+   RDS_HOST=$(terraform -chdir=../jobscan/terraform output -raw rds_endpoint | cut -d: -f1)
+   ASG=$(terraform -chdir=../jobscan/terraform output -raw asg_name)
+   INSTANCE_ID=$(aws ec2 describe-instances --region eu-west-1 \
+     --filters "Name=tag:aws:autoscaling:groupName,Values=$ASG" "Name=instance-state-name,Values=running" \
+     --query 'Reservations[0].Instances[0].InstanceId' --output text)
+
+   aws ssm start-session --region eu-west-1 --target "$INSTANCE_ID" \
+     --document-name AWS-StartPortForwardingSessionToRemoteHost \
+     --parameters "{\"host\":[\"$RDS_HOST\"],\"portNumber\":[\"5432\"],\"localPortNumber\":[\"5433\"]}"
+   ```
+
+2. In another terminal, connect as the master user (`db_username` in jobscan's `terraform/dev.tfvars`, `admin_user`). Its password is in the Secrets Manager secret that RDS manages. If `psql` isn't installed, run it from the Postgres image:
+   ```sh
+   SECRET_ARN=$(aws rds describe-db-instances --region eu-west-1 --db-instance-identifier jobscan-dev \
+     --query 'DBInstances[0].MasterUserSecret.SecretArn' --output text)
+   export PGPASSWORD=$(aws secretsmanager get-secret-value --region eu-west-1 \
+     --secret-id "$SECRET_ARN" --query SecretString --output text | jq -r .password)
+
+   docker run --rm -it --network host -e PGPASSWORD postgres:16 \
+     psql "host=localhost port=5433 dbname=jobscan user=admin_user sslmode=require"
+   ```
+
+3. Create the user, allow it to log in with IAM and let it read jobscan's tables:
    ```sql
    CREATE USER job_matcher_app;
    GRANT rds_iam TO job_matcher_app;
    GRANT USAGE ON SCHEMA public TO job_matcher_app;
    GRANT SELECT ON ALL TABLES IN SCHEMA public TO job_matcher_app;
    ```
-   `GRANT SELECT ON ALL TABLES` only covers existing tables. So that tables created later by jobscan's migrations are readable too, let the master user act for `jobscan_app`, which owns them, and set its default privileges:
+
+4. `GRANT SELECT ON ALL TABLES` only covers the tables that exist now. Check who owns them with `\dt`. If the owner is `jobscan_app`, which runs jobscan's Flyway migrations, make the tables it creates later readable too:
    ```sql
-   GRANT jobscan_app TO <master user>;
+   GRANT jobscan_app TO admin_user;
    ALTER DEFAULT PRIVILEGES FOR ROLE jobscan_app IN SCHEMA public GRANT SELECT ON TABLES TO job_matcher_app;
    ```
+   Otherwise, run the last `GRANT` from step 3 again after each jobscan migration that adds a table.
+
+5. Check the user: `\du job_matcher_app` should list `rds_iam` in its "Member of" column.
 
 ### Deploying a new version
 
