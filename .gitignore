@@ -31,3 +31,8 @@
 # Ignore key files for decrypting credentials and more.
 /config/*.key
 
+
+# Ignore Terraform local state and provider cache.
+/terraform/.terraform/
+/terraform/*.tfstate
+/terraform/*.tfstate.*
