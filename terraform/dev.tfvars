@@ -4,7 +4,7 @@ environment     = "dev"
 db_app_username = "job_matcher_app"
 instance_type   = "t3.micro"
 
-bedrock_inference_profile_id = "eu.anthropic.claude-sonnet-5-5"
+bedrock_inference_profile_id = "eu.anthropic.claude-haiku-5-5"
 
 matching_schedule_expression = "cron(0 7 * * ? *)"
 matching_schedule_timezone   = "UTC"

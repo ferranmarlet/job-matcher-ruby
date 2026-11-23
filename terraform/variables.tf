@@ -55,7 +55,7 @@ variable "container_port" {
 variable "bedrock_inference_profile_id" {
   description = "Bedrock cross-region inference profile used for matching"
   type        = string
-  default     = "eu.anthropic.claude-sonnet-5-5"
+  default     = "eu.anthropic.claude-haiku-5-5"
 }
 
 variable "ses_sender_email" {
