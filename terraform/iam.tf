@@ -150,29 +150,6 @@ resource "aws_iam_role_policy" "app_task_ses" {
   })
 }
 
-# Lets the MCP server start a matching run on demand
-resource "aws_iam_role_policy" "app_task_run_matching" {
-  name = "run-matching-task"
-  role = aws_iam_role.app_task.id
-
-  policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Effect    = "Allow"
-        Action    = "ecs:RunTask"
-        Resource  = "${aws_ecs_task_definition.matching.arn_without_revision}:*"
-        Condition = { ArnEquals = { "ecs:cluster" = aws_ecs_cluster.main.arn } }
-      },
-      {
-        Effect   = "Allow"
-        Action   = "iam:PassRole"
-        Resource = [aws_iam_role.task_execution.arn, aws_iam_role.app_task.arn]
-      },
-    ]
-  })
-}
-
 # --- EventBridge Scheduler ---
 resource "aws_iam_role" "scheduler" {
   name = "${local.name}-scheduler"

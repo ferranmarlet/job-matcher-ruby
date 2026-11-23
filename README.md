@@ -17,7 +17,43 @@ bin/rails server
 
 It connects to the `jobscan` database as `jobscan` / `jobscan` on `localhost:5432`. Override any of these with `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USERNAME` and `DB_PASSWORD`.
 
-Tests use their own `job_matcher_ruby_test` database on the same server.
+Tests use their own `job_matcher_ruby_test` database on the same server. Before each run, they rebuild jobscan's tables from the Flyway migrations copied into `db/jobscan_migrations/`. After jobscan adds a migration, copy them again with:
+
+```sh
+bin/sync-jobscan-migrations
+```
+
+## Job matching
+
+A run matches open job postings discovered in the last week to the resume of each user with auto-analysis enabled. It sends each resume (a PDF in jobscan's resumes bucket, at the key in `resumes.file_link`) and the postings to Claude on Bedrock, and keeps the postings scoring 60 or more. Results are not stored: they are emailed or returned.
+
+### From the command line
+
+```sh
+bin/rails job_matching:run
+bin/rails job_matching:run USER_EMAIL=someone@example.com SINCE=2026-11-01
+```
+
+`USER_EMAIL` matches one user, whether or not auto-analysis is enabled. `SINCE` replaces the one-week window. Each user with matches is emailed, and every result is printed as JSON.
+
+It needs AWS credentials and `RESUMES_BUCKET_NAME` (`jobscan-resumes-dev`). Locally, emails are only logged; set `MAIL_DELIVERY_METHOD=ses_v2` and `SES_SENDER_EMAIL` to send them through SES.
+
+### From Claude Code (MCP)
+
+The web server serves an MCP server at `/mcp` with two tools:
+
+| Tool | Does |
+|---|---|
+| `match_jobs` | Runs the matching and returns the results. Optional `user_email`, `since` and `send_email` (defaults to false). |
+| `refine_matches` | Revises one user's matches, as returned by `match_jobs`, following feedback such as "only remote jobs". |
+
+Every request needs a Cognito access token from jobscan's user pool, issued to the backoffice SPA client to a user in the `admin` group. Locally, set `COGNITO_ISSUER_URI` and `COGNITO_SPA_CLIENT_ID` (see `terraform/dev.tfvars`). With the app reachable on port 3000, locally or through the SSM tunnel below:
+
+```sh
+claude mcp add --transport http job-matcher http://localhost:3000/mcp --header "Authorization: Bearer <access token>"
+```
+
+Access tokens expire after 60 minutes, so the header must then be replaced with a new token.
 
 ## Infrastructure
 
@@ -26,9 +62,9 @@ The `terraform/` stack runs in AWS `eu-west-1` (environment `dev`) next to jobsc
 | Component | Details |
 |---|---|
 | **Web server** | ECS service on its own EC2 instance (`t3.micro`, Auto Scaling group fixed at 1) in jobscan's public subnet. No inbound rules: reach it through SSM port forwarding on port 80. |
-| **Batch matching** | Fargate task running `bin/rails job_matching:run`, started by an EventBridge Scheduler schedule. The schedule is `DISABLED` until that task exists (`matching_schedule_state`). |
+| **Batch matching** | Fargate task running `bin/rails job_matching:run`, started by an EventBridge Scheduler schedule. The schedule is `DISABLED` until a manual run has worked (`matching_schedule_state`). |
 | **Database** | jobscan's RDS instance, as the read-only user `job_matcher_app` with IAM authentication (`DB_IAM_AUTH=true`, see `config/initializers/rds_iam_authentication.rb`). |
-| **Permissions** | Read resumes from jobscan's S3 bucket, invoke the Bedrock inference profile `bedrock_inference_profile_id`, send email through SES from `ses_sender_email`, and start the batch matching task. |
+| **Permissions** | Read resumes from jobscan's S3 bucket, invoke the Bedrock inference profile `bedrock_inference_profile_id`, and send email through SES from `ses_sender_email`. |
 | **Secrets** | `RAILS_MASTER_KEY`, from a Secrets Manager secret whose value is set by hand. |
 
 ### First-time setup

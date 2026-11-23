@@ -117,10 +117,10 @@ locals {
     { name = "RESUMES_BUCKET_NAME", value = data.aws_s3_bucket.resumes.bucket },
     { name = "BEDROCK_INFERENCE_PROFILE_ID", value = var.bedrock_inference_profile_id },
     { name = "SES_SENDER_EMAIL", value = var.ses_sender_email },
-    { name = "ECS_CLUSTER_NAME", value = aws_ecs_cluster.main.name },
-    { name = "MATCHING_TASK_DEFINITION", value = "${var.project_name}-matching" },
-    { name = "MATCHING_SUBNET_ID", value = local.public_subnet_id },
-    { name = "MATCHING_SECURITY_GROUP_IDS", value = join(",", [aws_security_group.app.id, local.jobscan_app_security_group]) },
+    { name = "COGNITO_ISSUER_URI", value = var.cognito_issuer_uri },
+    { name = "COGNITO_SPA_CLIENT_ID", value = var.cognito_spa_client_id },
+    # Matching every user in one MCP request outlasts Thruster's 30-second default
+    { name = "HTTP_WRITE_TIMEOUT", value = "600" },
   ]
 
   app_secrets = [{

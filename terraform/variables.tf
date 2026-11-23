@@ -82,7 +82,17 @@ variable "matching_schedule_timezone" {
 }
 
 variable "matching_schedule_state" {
-  description = "ENABLED or DISABLED. Keep DISABLED until the job_matching:run task exists."
+  description = "ENABLED or DISABLED. Keep DISABLED until a manual run of the matching task has worked."
   type        = string
   default     = "DISABLED"
+}
+
+variable "cognito_issuer_uri" {
+  description = "Issuer of the Cognito access tokens the MCP server accepts (jobscan-backoffice output cognito_issuer_uri)"
+  type        = string
+}
+
+variable "cognito_spa_client_id" {
+  description = "Cognito app client the access tokens must be issued to (jobscan-backoffice output cognito_spa_client_id)"
+  type        = string
 }

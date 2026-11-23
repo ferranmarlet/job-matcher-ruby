@@ -29,8 +29,9 @@ Rails.application.configure do
   # Store uploaded files on the local file system (see config/storage.yml for options).
   config.active_storage.service = :local
 
-  # Don't care if the mailer can't send.
-  config.action_mailer.raise_delivery_errors = false
+  config.action_mailer.delivery_method = ENV.fetch("MAIL_DELIVERY_METHOD", "test").to_sym
+  config.action_mailer.ses_v2_settings = { region: ENV.fetch("AWS_REGION", "eu-west-1") }
+  config.action_mailer.raise_delivery_errors = true
 
   # Make template changes take effect immediately.
   config.action_mailer.perform_caching = false
