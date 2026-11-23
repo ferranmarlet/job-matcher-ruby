@@ -1,0 +1,8 @@
+These job postings match your resume:
+<% @matches.each do |match| %>
+
+<%= match.job_posting.title %><%= " at #{match.job_posting.company}" if match.job_posting.company %> (score <%= match.score %>/100)
+<%= match.job_posting.source_url %>
+Why it fits: <%= match.reasons %>
+What you lack: <%= match.gaps %>
+<% end %>

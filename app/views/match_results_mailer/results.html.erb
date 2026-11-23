@@ -1,0 +1,14 @@
+<p>These job postings match your resume:</p>
+
+<% @matches.each do |match| %>
+  <h2>
+    <% if match.job_posting.source_url.to_s.match?(%r{\Ahttps?://}i) %>
+      <%= link_to match.job_posting.title, match.job_posting.source_url %>
+    <% else %>
+      <%= match.job_posting.title %>
+    <% end %><%= " at #{match.job_posting.company}" if match.job_posting.company %>
+    (score <%= match.score %>/100)
+  </h2>
+  <p><strong>Why it fits:</strong> <%= match.reasons %></p>
+  <p><strong>What you lack:</strong> <%= match.gaps %></p>
+<% end %>
