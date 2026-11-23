@@ -1,0 +1,14 @@
+alice:
+  external_id: cognito-alice
+  email: alice@example.com
+  auto_analysis_enabled: true
+
+bob:
+  external_id: cognito-bob
+  email: bob@example.com
+  auto_analysis_enabled: false
+
+carol:
+  external_id: cognito-carol
+  email: carol@example.com
+  auto_analysis_enabled: true

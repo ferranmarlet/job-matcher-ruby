@@ -1,0 +1,10 @@
+_fixture:
+  model_class: JobPostingSkill
+
+recent_open_ruby:
+  job_posting: recent_open
+  skill: Ruby
+
+recent_open_postgres:
+  job_posting: recent_open
+  skill: PostgreSQL

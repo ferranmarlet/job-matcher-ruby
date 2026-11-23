@@ -1,0 +1,7 @@
+alice:
+  user: alice
+  file_link: resumes/alice.pdf
+
+bob:
+  user: bob
+  file_link: resumes/bob.pdf
