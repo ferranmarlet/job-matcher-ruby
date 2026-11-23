@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+app_root="$(cd "$(dirname "$0")/.." && pwd)"
+source_dir="${JOBSCAN_DIR:-$app_root/../jobscan}/src/main/resources/db/migration"
+target_dir="$app_root/db/jobscan_migrations"
+
+if ! compgen -G "$source_dir/V*.sql" > /dev/null; then
+  echo "No Flyway migrations found in $source_dir (set JOBSCAN_DIR to the jobscan repository)" >&2
+  exit 1
+fi
+
+rm -rf "$target_dir"
+mkdir -p "$target_dir"
+cp "$source_dir"/V*.sql "$target_dir"/
+ls "$target_dir"
