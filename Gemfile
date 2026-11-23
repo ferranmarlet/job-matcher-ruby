@@ -46,3 +46,9 @@ group :development, :test do
 end
 
 gem "aws-sdk-rds", "~> 1.337"
+
+gem "aws-sdk-s3", "~> 1.245"
+gem "aws-sdk-bedrockruntime", "~> 1.98"
+gem "aws-actionmailer-ses", "~> 1.2"
+gem "mcp", "~> 1.11"
+gem "jwt", "~> 3.3"
